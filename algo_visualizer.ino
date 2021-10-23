@@ -1,5 +1,4 @@
-// Adafruit_NeoMatrix example for single NeoPixel Shield.
-// Scrolls 'Howdy' across the matrix in a portrait (vertical) orientation.
+#include <gamma.h>
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_NeoMatrix.h>
@@ -8,7 +7,17 @@
  #define PSTR // Make Arduino Due happy
 #endif
 
-#define PIN 6
+// Define Arduino pin numbers
+#define LED_DATA_PIN 6 // data pin for LED Matrix
+#define SW_PIN 2 // digital pin connected to switch output
+#define X_PIN A0 // analog pin connected to X output
+#define Y_PIN A1 // analog pin connected to Y output
+
+
+// define LED matrix width and height
+#define MATRIX_HEIGHT 16
+#define MATRIX_WIDTH 16
+
 
 // MATRIX DECLARATION:
 // Parameter 1 = width of NeoPixel matrix
@@ -31,67 +40,125 @@
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 
 
-// Example for NeoPixel Shield.  In this application we'd like to use it
-// as a 5x8 tall matrix, with the USB port positioned at the top of the
-// Arduino.  When held that way, the first pixel is at the top right, and
-// lines are arranged in columns, progressive order.  The shield uses
-// 800 KHz (v2) pixels that expect GRB color data.
-Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(16, 16, PIN,
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(MATRIX_HEIGHT, MATRIX_WIDTH, LED_DATA_PIN,
   NEO_MATRIX_TOP     + NEO_MATRIX_LEFT +
   NEO_MATRIX_COLUMNS + NEO_MATRIX_ZIGZAG,
   NEO_GRB            + NEO_KHZ800);
 
-const uint16_t colors[] = {
-  matrix.Color(255, 0, 0), matrix.Color(0, 255, 0), matrix.Color(0, 0, 255) };
+// colors array
+const uint16_t colors[] =
+{
+  matrix.Color(255, 255, 255), // 0 white
+  matrix.Color(0, 255, 0), // 1 red
+  matrix.Color(0, 255, 0), // 2 green
+  matrix.Color(0, 0, 255), // 3 blue
+};
 
-void setup() {
+// assuming matrix width and height are not zero-indexed
+// check if the movement will bring it out of bounds, if so return false
+// x_pos, y_pos are the current pos, x_move and y_move is is move is made, 0 for no movement, 1 for +dir, -1 for -dir
+bool inBoundary(int x_pos, int y_pos, int x_move, int y_move)
+{
+  // no movement
+  if(x_move == 0 && y_move == 0)
+  {
+    return true;
+  }
+
+  // check if out of boundaries on all sides
+  if(x_pos + x_move >= MATRIX_WIDTH || x_pos + x_move < 0 ||
+     y_pos + y_move >= MATRIX_HEIGHT || y_pos + y_move < 0)
+  {
+    return false;
+  }
+  else
+  {
+    return true;
+  }
+}
+
+
+
+void setup()
+{
+  // for LED matrix
   matrix.begin();
   matrix.setTextWrap(false);
-  matrix.setBrightness(5);
+  matrix.setBrightness(20);
   matrix.setTextColor(colors[0]);
-}
-
-int x    = matrix.width();
-int pass = 0;
-
-void loop() {
-  matrix.fillScreen(0);
-  matrix.setCursor(x, 0);
-  matrix.print(F("Lorin Zhang"));
-  if(--x < -36) {
-    x = matrix.width();
-    if(++pass >= 3) pass = 0;
-    matrix.setTextColor(colors[pass]);
-  }
-  matrix.show();
-  delay(200);
-}
-
-// ------- CODE FOR JOYSTICK ---------//
-//www.elegoo.com
-//2016.12.09
-
-// Arduino pin numbers
-const int SW_pin = 2; // digital pin connected to switch output
-const int X_pin = A0; // analog pin connected to X output
-const int Y_pin = A1; // analog pin connected to Y output
-
-void setup() {
-  pinMode(SW_pin, INPUT);
-  digitalWrite(SW_pin, HIGH);
+  // for joystick
+  pinMode(SW_PIN, INPUT);
+  digitalWrite(SW_PIN, HIGH);
   Serial.begin(9600);
 }
 
-void loop() {
+int x = 0;
+int y = 0;
+int x_dir = 0;
+int y_dir = 0;
+
+void loop()
+{
+  
+  matrix.fillScreen(0);
+  matrix.setCursor(0, 0);
+  if(analogRead(X_PIN) >= 610)
+  {
+    if(inBoundary(x, y, 1, 0))
+    {
+      x++;
+    }
+  }
+  else if(analogRead(X_PIN) <= 410)
+  {
+    if(inBoundary(x, y, -1, 0))
+    {
+      x--;
+    }
+  }
+  if(analogRead(Y_PIN) >= 640)
+  {
+    if(inBoundary(x, y, 0, 1))
+    {
+      y++;
+    }
+  } 
+  else if(analogRead(Y_PIN) <= 440)
+  {
+    if(inBoundary(x, y, 0, -1))
+    {
+      y--;
+    }
+  } 
+
+  // SW is active low
+  if!(digitalRead(SW_PIN))
+  {
+    ;
+  }
+  else
+  {
+    matrix.drawPixel(x, y, colors[0]); 
+  }
+  matrix.show();
+
+
+  // these are for the serial monitor
+  // use the analogRead and digitalRead for later 
+  // when the analogs are at rest, X = 510, y = 540
+  // 3 sensitivity move settings 
+  // 1) Slow: -X: 310 - 410    , +X: 610 - 710     , -Y: 340 - 440    , +Y: 640 - 740
+  // 2) Medium: -X: 210 - 309    , +X: 711 - 810    , -Y: 240 - 339    , +Y: 741 - 840
+  // 3) Fast -X: <= 209    , +X: >= 811     , -Y: <= 239    , +Y: >= 841
   Serial.print("Switch:  ");
-  Serial.print(digitalRead(SW_pin));
+  Serial.print(digitalRead(SW_PIN));
   Serial.print("\n");
   Serial.print("X-axis: ");
-  Serial.print(analogRead(X_pin));
+  Serial.print(analogRead(X_PIN));
   Serial.print("\n");
   Serial.print("Y-axis: ");
-  Serial.println(analogRead(Y_pin));
+  Serial.println(analogRead(Y_PIN));
   Serial.print("\n\n");
-  delay(500);
+  delay(100);
+
 }
-// ------- CODE FOR JOYSTICK ---------//
