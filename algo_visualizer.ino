@@ -57,24 +57,30 @@ int y = 0;
 int x_dir = 0;
 int y_dir = 0;
 int dir_arr[4] = {2,0,3,1};
+
+// start location and end location of path
+int start_x = -1;
+int start_y = -1;
+int end_x = -1;
+int end_y = -1;
 // NOTE GRID COORD (0,0) is at top left corner
 int maze[MATRIX_HEIGHT][MATRIX_WIDTH] = {
            {0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0},
-           {0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1},
+           {0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1},
            {1,0,1,1,1,1,1,1,1,0,1,1,0,1,0,1},
-           {1,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1},
+           {1,0,0,0,0,0,1,0,0,0,0,1,0,1,0,1},
            {1,0,1,1,0,1,1,1,0,1,1,1,0,1,0,1},
-           {1,0,1,1,0,1,1,1,0,1,1,0,0,1,0,1},
-           {1,0,1,1,0,1,1,1,0,0,0,0,1,1,0,1},
-           {1,0,1,1,0,1,1,1,0,1,1,0,0,0,0,1},
+           {1,0,1,1,0,0,0,1,0,1,1,0,0,1,0,1},
+           {1,0,1,1,0,1,0,0,0,0,0,0,1,1,0,1},
+           {1,0,1,1,0,0,0,1,0,1,1,0,0,0,0,1},
            {1,0,1,1,0,1,1,1,0,1,1,1,1,1,0,1},
            {1,0,1,1,0,1,1,1,0,1,1,1,1,1,0,1},
+           {1,0,1,1,0,1,1,1,1,1,1,1,1,0,0,0},
            {1,0,1,1,0,1,1,1,1,1,1,1,1,1,0,1},
-           {1,0,1,1,0,1,1,1,1,1,1,1,1,1,0,1},
-           {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-           {1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1},
-           {1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1},
-           {1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1}};
+           {1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1},
+           {1,1,1,1,1,1,1,1,0,1,0,1,0,1,1,1},
+           {1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1},
+           {1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1}};
            
         
 int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int end_x, int end_y, int *count)
@@ -176,42 +182,56 @@ bool isValidMovement(int x_pos, int y_pos, int x_move, int y_move, bool joyStick
 }
 
 
-void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], bool algo_ran, int *itr)
+void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int state, int *itr)
 {
+  // flag to mark all non soln cells were cleared
   int clearedAllNonSolnCellsFlag = 0;
-      //Serial.print(itr);
+
   for(int i = 0; i < MATRIX_HEIGHT; i++)
   {
     for(int j = 0; j < MATRIX_WIDTH; j++)
     {
+      // always draw walls
       if(maze[i][j] == 1)
       {
         matrix.drawPixel(i, j, colors[1]); 
       }
-      if(abs(maze[i][j]) <= *itr && abs(maze[i][j]) >= 3 && algo_ran)
+      // trace the traversal - state 3
+      // draw only the cells >= 3 and <= *itr as *itr is incremented in the main loop as well as the walls
+      if( (abs(maze[i][j]) <= *itr && abs(maze[i][j]) >= 3 == 1) && state == 3)
       {
         matrix.drawPixel(i, j, colors[3]); 
+        // draws the leading cell green as it traverses
         if(abs(maze[i][j]) == *itr)
         {
           matrix.drawPixel(i, j, colors[2]); 
         }
       } 
-      else if(maze[i][j] >= 3  && maze[i][j] <= itr && !algo_ran)
+      //  state 4: draw the soln for cells [3,*itr]
+      // although this will run once before all the non soln cells are cleared - it is not noticeable to the human eye
+      // and actually works as a transition....
+      if( ((maze[i][j] >= 3  && maze[i][j] <= *itr))  && state == 4) 
       {
         matrix.drawPixel(i, j, colors[3]);     
       }
+      if(state == 5)
+      {
+        matrix.drawPixel(start_x, start_y, colors[3]);  
+        matrix.drawPixel(end_x, end_y, colors[3]);  
+      }
     }
   }  
-  if(*itr > 3 && !algo_ran && !clearedAllNonSolnCellsFlag)
+  // before outputting the soln we have to clear all the non soln cells (all the negative marked cells)
+  if(*itr > 3 && (state == 4 || state == 5) && !clearedAllNonSolnCellsFlag)
   {
-    Serial.print("make valus big");
     for(int i = 0; i < MATRIX_HEIGHT; i++)
     {
       for(int j = 0; j < MATRIX_WIDTH; j++)
       {   
           if(maze[i][j] < 0)
           {
-            maze[i][j] = 300;
+            // set to arbitrary large number to denote it as non soln cell, 16x16 matrix will have 255 being the largest traversal count
+            maze[i][j] = 300; 
           }             
       }
     }
@@ -256,7 +276,7 @@ void setup()
   // for LED matrix
   matrix.begin();
   matrix.setTextWrap(false);
-  matrix.setBrightness(2);
+  matrix.setBrightness(5);
   // for joystick
   pinMode(SW_PIN, INPUT);
   digitalWrite(SW_PIN, HIGH);
@@ -267,52 +287,87 @@ void setup()
 
 }
 int count = 3;
-bool algo_ran = false;
+// to hold FSM state
+// state = 0, draw maze, await user input start location
+// state 1: await user input end location
+// state 2: run algo
+// state 3: trace route
+// state 4: show soln
+// state 5 : no soln
+int state = 0;
 int itr = 3;
 void loop()
 {
   matrix.fillScreen(0);
   matrix.setCursor(0, 0);
   readJoyStick();
-  if(!algo_ran)
+  // state 0: draw maze
+  if(state == 0)
   {
-      drawMatrix(maze, algo_ran, &itr);
+      drawMatrix(maze, state, &itr);
+      // select starting location
+      if(!digitalRead(SW_PIN))
+      {
+        start_x = x;
+        start_y = y;
+        state = 1; // move to state 1
+      }
+      Serial.print("S0\n");
   }
-  else
+  else if(state == 1)
   {
-    Serial.print("tracing\n");
-    drawMatrix(maze, algo_ran, &itr);
+      drawMatrix(maze, state, &itr);
+      if(!digitalRead(SW_PIN))
+      {
+        end_x = x;
+        end_y = y;  
+        state = 2; // move to state 2
+        Serial.print("Set to S2!\nStart:");
+        Serial.print(start_x);
+        Serial.print(" ");
+        Serial.print(start_y);
+        Serial.print("\nEnd:");
+        Serial.print(end_x);
+        Serial.print(" ");
+        Serial.print(end_y);
+        Serial.print("\n");
+      }
+      Serial.print("S1\n");
+  }
+  else if(state == 2) // run algo
+  {
+     Serial.print("Running Algo\n");
+     if(!findPath(maze, start_x, start_y, end_x, end_y, &count))// might have x and y mixed up
+     {
+      state = 5;
+     }
+     maze[end_x][end_y] = count + 1;  
+     state = 3; // move to state 3 
+     Serial.print("S2\n");
+  }
+  else if(state == 3) // state 3: trace traversal
+  {
+    drawMatrix(maze, state, &itr);
     itr++;
     if(itr >= count + 1)
     {
-      algo_ran = false;
+      state = 4; // go to state 4 to show soln
     }
-    delay(50);
+    Serial.print("S3\n");
+    delay(50); 
+  }
+  else if(state == 4)
+  {
+    drawMatrix(maze, state, &itr);
+    Serial.print("S4\n");
+  }
+  else if(state == 5)
+  {
+    drawMatrix(maze, state, &itr);
+  }
 
-    
-  }
-
-  // SW is active low
-  if(!digitalRead(SW_PIN))
-  {
-    //Serial.print("Calling dfs\n");
-    findPath(maze, 0, 0, 0, 15, &count);
-    maze[0][15] = count + 1;
-    algo_ran = true;
-   for(int i = 0; i < MATRIX_HEIGHT; i++)
-  {
-    for(int j = 0; j < MATRIX_WIDTH; j++)
-    {
-      Serial.print(maze[i][j]);
-      Serial.print(" ");
-    }
-      Serial.print("\n");
-  }
-  }
-  else
-  {
-    matrix.drawPixel(x, y, colors[0]); 
-  }
+  // draw cursor at all times
+  matrix.drawPixel(x, y, colors[0]);
   
   matrix.show();
   delay(100);
