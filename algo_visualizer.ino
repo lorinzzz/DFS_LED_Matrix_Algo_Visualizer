@@ -87,7 +87,7 @@ int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int 
         return 1;
     }
 
-    (*count)++;
+
     // hit wall or edge
     if(curr_x < 0 || curr_x >= MATRIX_WIDTH || curr_y < 0 || curr_y >= MATRIX_HEIGHT || (maze[curr_x][curr_y] >= 1))
     {
@@ -95,6 +95,7 @@ int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int 
     }    
 
     // mark current pos as visited
+    (*count)++;
     maze[curr_x][curr_y] = *count;
     
 
@@ -175,9 +176,10 @@ bool isValidMovement(int x_pos, int y_pos, int x_move, int y_move, bool joyStick
 }
 
 
-void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], bool algo_ran, int itr)
+void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], bool algo_ran, int *itr)
 {
-      Serial.print(itr);
+  int clearedAllNonSolnCellsFlag = 0;
+      //Serial.print(itr);
   for(int i = 0; i < MATRIX_HEIGHT; i++)
   {
     for(int j = 0; j < MATRIX_WIDTH; j++)
@@ -186,28 +188,34 @@ void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], bool algo_ran, int itr)
       {
         matrix.drawPixel(i, j, colors[1]); 
       }
-      if(abs(maze[i][j]) <= itr && abs(maze[i][j]) >= 3 && algo_ran)
+      if(abs(maze[i][j]) <= *itr && abs(maze[i][j]) >= 3 && algo_ran)
       {
         matrix.drawPixel(i, j, colors[3]); 
+        if(abs(maze[i][j]) == *itr)
+        {
+          matrix.drawPixel(i, j, colors[2]); 
+        }
       } 
-      else if(maze[i][j] >= 3 && !algo_ran)
+      else if(maze[i][j] >= 3  && maze[i][j] <= itr && !algo_ran)
       {
         matrix.drawPixel(i, j, colors[3]);     
       }
     }
   }  
-  if(itr > 3 && !algo_ran)
+  if(*itr > 3 && !algo_ran && !clearedAllNonSolnCellsFlag)
   {
+    Serial.print("make valus big");
     for(int i = 0; i < MATRIX_HEIGHT; i++)
     {
       for(int j = 0; j < MATRIX_WIDTH; j++)
       {   
           if(maze[i][j] < 0)
           {
-            maze[i][j] = 0;
+            maze[i][j] = 300;
           }             
       }
     }
+    clearedAllNonSolnCellsFlag = 1;
   }
 }
 
@@ -268,17 +276,18 @@ void loop()
   readJoyStick();
   if(!algo_ran)
   {
-      drawMatrix(maze, algo_ran, itr);
+      drawMatrix(maze, algo_ran, &itr);
   }
   else
   {
     Serial.print("tracing\n");
-    drawMatrix(maze, algo_ran, itr);
+    drawMatrix(maze, algo_ran, &itr);
     itr++;
     if(itr >= count + 1)
     {
       algo_ran = false;
     }
+    delay(50);
 
     
   }
