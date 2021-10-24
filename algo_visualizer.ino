@@ -76,7 +76,6 @@ int maze[MATRIX_HEIGHT][MATRIX_WIDTH] = {
            {1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1},
            {1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1}};
            
- 
         
 int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int end_x, int end_y, int *count)
 {
@@ -87,16 +86,18 @@ int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int 
         maze[curr_x][curr_y] = 5;
         return 1;
     }
+
+    (*count)++;
     // hit wall or edge
     if(curr_x < 0 || curr_x >= MATRIX_WIDTH || curr_y < 0 || curr_y >= MATRIX_HEIGHT || (maze[curr_x][curr_y] >= 1))
     {
         return 0;
-    }
+    }    
+
     // mark current pos as visited
-    (*count)++;
     maze[curr_x][curr_y] = *count;
     
-    
+
     for(int i = 0; i < 4; i++)
     {
       // go left
@@ -132,7 +133,7 @@ int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int 
         }
       }      
     }
-    maze[curr_x][curr_y] = 2;
+    maze[curr_x][curr_y] = maze[curr_x][curr_y] * (-1);
     return 0;
 
 }
@@ -185,9 +186,8 @@ void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], bool algo_ran, int itr)
       {
         matrix.drawPixel(i, j, colors[1]); 
       }
-      if(maze[i][j] <= itr && maze[i][j] >= 3 && algo_ran)
+      if(abs(maze[i][j]) <= itr && abs(maze[i][j]) >= 3 && algo_ran)
       {
-        Serial.print("here");
         matrix.drawPixel(i, j, colors[3]); 
       } 
       else if(maze[i][j] >= 3 && !algo_ran)
@@ -195,7 +195,20 @@ void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], bool algo_ran, int itr)
         matrix.drawPixel(i, j, colors[3]);     
       }
     }
-  }                       
+  }  
+  if(itr > 3 && !algo_ran)
+  {
+    for(int i = 0; i < MATRIX_HEIGHT; i++)
+    {
+      for(int j = 0; j < MATRIX_WIDTH; j++)
+      {   
+          if(maze[i][j] < 0)
+          {
+            maze[i][j] = 0;
+          }             
+      }
+    }
+  }
 }
 
 void readJoyStick()
