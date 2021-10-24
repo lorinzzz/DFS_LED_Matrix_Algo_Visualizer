@@ -56,10 +56,11 @@ int x = 0;
 int y = 0;
 int x_dir = 0;
 int y_dir = 0;
+int dir_arr[4] = {2,0,3,1};
 // NOTE GRID COORD (0,0) is at top left corner
 int maze[MATRIX_HEIGHT][MATRIX_WIDTH] = {
            {0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0},
-           {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+           {0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1},
            {1,0,1,1,1,1,1,1,1,0,1,1,0,1,0,1},
            {1,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1},
            {1,0,1,1,0,1,1,1,0,1,1,1,0,1,0,1},
@@ -77,41 +78,59 @@ int maze[MATRIX_HEIGHT][MATRIX_WIDTH] = {
            
  
         
-int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int end_x, int end_y)
+int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int end_x, int end_y, int *count)
 {
     // path found 
     if(curr_x == end_x && curr_y == end_y)
     {
+      Serial.print("path found!\n");
         maze[curr_x][curr_y] = 5;
         return 1;
     }
     // hit wall or edge
-    if(curr_x < 0 || curr_x >= MATRIX_WIDTH || curr_y < 0 || curr_y >= MATRIX_HEIGHT || (maze[curr_x][curr_y] == 1) || (maze[curr_x][curr_y] == 5 || (maze[curr_x][curr_y] == 2)))
+    if(curr_x < 0 || curr_x >= MATRIX_WIDTH || curr_y < 0 || curr_y >= MATRIX_HEIGHT || (maze[curr_x][curr_y] >= 1))
     {
         return 0;
     }
     // mark current pos as visited
-    maze[curr_x][curr_y] = 5;
-
-    // go left
-    if(findPath(maze,   curr_x - 1, curr_y, end_x, end_y))
+    (*count)++;
+    maze[curr_x][curr_y] = *count;
+    
+    
+    for(int i = 0; i < 4; i++)
     {
-        return 1;
-    }
-    // go right
-    if(findPath(maze,   curr_x + 1, curr_y, end_x, end_y))
-    {
-        return 1;
-    }
-    // go up
-    if(findPath(maze,   curr_x, curr_y + 1, end_x, end_y))
-    {
-        return 1;
-    }
-    // go down
-    if(findPath(maze,  curr_x, curr_y - 1, end_x, end_y))
-    {
-        return 1;
+      // go left
+      if(dir_arr[i] == 0)
+      {
+        if(findPath(maze,   curr_x - 1, curr_y, end_x, end_y, count))
+        {
+            return 1;
+        }        
+      }
+      // go right
+      if(dir_arr[i] == 1)
+      {     
+        if(findPath(maze,   curr_x + 1, curr_y, end_x, end_y, count))
+        {
+            return 1;
+        }
+      }
+      // go up
+      if(dir_arr[i] == 2)
+      {
+        if(findPath(maze,   curr_x, curr_y + 1, end_x, end_y, count))
+        {
+            return 1;
+        }
+      }
+      // go down
+      if(dir_arr[i] == 3)
+      {
+        if(findPath(maze,  curr_x, curr_y - 1, end_x, end_y, count))
+        {
+            return 1;
+        }
+      }      
     }
     maze[curr_x][curr_y] = 2;
     return 0;
@@ -155,8 +174,9 @@ bool isValidMovement(int x_pos, int y_pos, int x_move, int y_move, bool joyStick
 }
 
 
-void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH])
+void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], bool algo_ran, int itr)
 {
+      Serial.print(itr);
   for(int i = 0; i < MATRIX_HEIGHT; i++)
   {
     for(int j = 0; j < MATRIX_WIDTH; j++)
@@ -165,10 +185,15 @@ void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH])
       {
         matrix.drawPixel(i, j, colors[1]); 
       }
-      if(maze[i][j] == 5)
+      if(maze[i][j] <= itr && maze[i][j] >= 3 && algo_ran)
       {
+        Serial.print("here");
         matrix.drawPixel(i, j, colors[3]); 
-      }      
+      } 
+      else if(maze[i][j] >= 3 && !algo_ran)
+      {
+        matrix.drawPixel(i, j, colors[3]);     
+      }
     }
   }                       
 }
@@ -220,21 +245,47 @@ void setup()
   
 
 }
-
-
-int count = 0; 
+int count = 3;
+bool algo_ran = false;
+int itr = 3;
 void loop()
 {
   matrix.fillScreen(0);
   matrix.setCursor(0, 0);
   readJoyStick();
-  drawMatrix(maze);
+  if(!algo_ran)
+  {
+      drawMatrix(maze, algo_ran, itr);
+  }
+  else
+  {
+    Serial.print("tracing\n");
+    drawMatrix(maze, algo_ran, itr);
+    itr++;
+    if(itr >= count + 1)
+    {
+      algo_ran = false;
+    }
+
+    
+  }
 
   // SW is active low
   if(!digitalRead(SW_PIN))
   {
     //Serial.print("Calling dfs\n");
-    findPath(maze, 0, 0, 0, 15);
+    findPath(maze, 0, 0, 0, 15, &count);
+    maze[0][15] = count + 1;
+    algo_ran = true;
+   for(int i = 0; i < MATRIX_HEIGHT; i++)
+  {
+    for(int j = 0; j < MATRIX_WIDTH; j++)
+    {
+      Serial.print(maze[i][j]);
+      Serial.print(" ");
+    }
+      Serial.print("\n");
+  }
   }
   else
   {
