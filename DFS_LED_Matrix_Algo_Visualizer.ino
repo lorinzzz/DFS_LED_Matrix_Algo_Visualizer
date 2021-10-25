@@ -56,7 +56,7 @@ int x = 0;
 int y = 0;
 int x_dir = 0;
 int y_dir = 0;
-int dir_arr[4] = {2,0,3,1};
+int randomDirArr[4] = {0,1,2,3}; // to be shuffled later
 
 // start location and end location of path
 int start_x = -1;
@@ -64,6 +64,10 @@ int start_y = -1;
 int end_x = -1;
 int end_y = -1;
 // NOTE GRID COORD (0,0) is at top left corner
+// 1 designates a wall
+// 2 is reserved 
+// 3- 255 traverse order markings
+// neg numbers: non soln cells
 int maze[MATRIX_HEIGHT][MATRIX_WIDTH] = {
            {0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0},
            {0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1},
@@ -112,7 +116,7 @@ int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int 
     for(int i = 0; i < 4; i++)
     {
       // go left
-      if(dir_arr[i] == 0)
+      if(randomDirArr[i] == 0)
       {
         if(findPath(maze,   curr_x - 1, curr_y, end_x, end_y, count))
         {
@@ -120,7 +124,7 @@ int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int 
         }        
       }
       // go right
-      if(dir_arr[i] == 1)
+      if(randomDirArr[i] == 1)
       {     
         if(findPath(maze,   curr_x + 1, curr_y, end_x, end_y, count))
         {
@@ -128,7 +132,7 @@ int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int 
         }
       }
       // go up
-      if(dir_arr[i] == 2)
+      if(randomDirArr[i] == 2)
       {
         if(findPath(maze,   curr_x, curr_y + 1, end_x, end_y, count))
         {
@@ -136,7 +140,7 @@ int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int 
         }
       }
       // go down
-      if(dir_arr[i] == 3)
+      if(randomDirArr[i] == 3)
       {
         if(findPath(maze,  curr_x, curr_y - 1, end_x, end_y, count))
         {
@@ -268,8 +272,22 @@ void setup()
 
   //for UART 
   Serial.begin(9600);
-  
 
+  int tempRandIdx1 = 0;
+  int tempRandIdx2 = 0;
+  int tempArrVal = 0;
+
+  // seed the random num generator and shuffle the direction array
+  randomSeed(analogRead(0));
+  for(int i = 0; i < 20; i++)
+  {
+      tempRandIdx1 = random(4);
+      tempRandIdx2 = random(4);
+      tempArrVal = randomDirArr[tempRandIdx1];
+      randomDirArr[tempRandIdx1] = randomDirArr[tempRandIdx2];
+      randomDirArr[tempRandIdx2] = tempArrVal;
+          
+  }
 }
 int count = 3;
 // to hold FSM state
@@ -279,6 +297,7 @@ int count = 3;
 // state 3: trace route
 // state 4: show soln
 // state 5 : no soln
+
 int state = 0;
 int itr = 3;
 void loop()
@@ -315,6 +334,11 @@ void loop()
       state = 5;
      }
      maze[end_x][end_y] = count + 1;  
+     for(int i = 0; i < 4; i++)
+     {
+        Serial.print(randomDirArr[i]);
+        Serial.print("\n");
+     }
      state = 3; // move to state 3 
   }
   else if(state == 3) // state 3: trace traversal
