@@ -76,15 +76,15 @@ int maze[MATRIX_HEIGHT][MATRIX_WIDTH] = {
            {1,0,1,1,0,1,1,1,0,1,1,1,0,1,0,1},
            {1,0,1,1,0,0,0,1,0,1,1,0,0,1,0,1},
            {1,0,1,1,0,1,0,0,0,0,0,0,1,1,0,1},
-           {1,0,1,1,0,0,0,1,0,1,1,0,0,0,0,1},
-           {1,0,1,1,0,1,1,1,0,1,1,1,1,1,0,1},
-           {1,0,1,1,0,1,1,1,0,1,1,1,1,1,0,1},
-           {1,0,1,1,0,1,1,1,1,1,1,1,1,0,0,0},
-           {1,0,1,1,0,1,1,1,1,1,1,1,1,1,0,1},
-           {1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1},
-           {1,1,1,1,1,1,1,1,0,1,0,1,0,1,1,1},
-           {1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1},
-           {1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1}};
+           {1,0,1,1,1,0,0,1,0,1,1,0,0,0,0,1},
+           {1,0,0,0,1,1,1,1,0,1,1,0,1,1,0,1},
+           {1,0,1,0,0,0,0,0,0,1,0,0,1,1,0,1},
+           {1,0,1,1,0,1,1,0,1,1,0,1,1,0,0,0},
+           {1,0,1,1,0,1,1,0,1,1,0,1,1,1,0,1},
+           {1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0},
+           {1,0,1,0,1,0,1,1,0,1,0,1,0,1,1,0},
+           {0,0,0,0,1,0,1,1,0,0,0,0,0,0,1,0},
+           {0,1,1,1,1,0,1,1,0,1,0,1,1,1,1,0}};
            
 // in efforts to reduce memory usage after all recursive call stacks of findPath is executed
 // maze will be updated with the traversal order marked on the cells (barring all walls and already traversed cells)
@@ -320,6 +320,8 @@ void loop()
   else if(state == 1)
   {
       drawMatrix(maze, state, &itr);
+      // show green for cursor during this stage
+      matrix.drawPixel(x, y, colors[2]);
       if(!digitalRead(SW_PIN))
       {
         end_x = x;
@@ -360,8 +362,11 @@ void loop()
     drawMatrix(maze, state, &itr);
   }
 
-  // draw cursor at all times
-  matrix.drawPixel(x, y, colors[0]);
+  // draw cursor at all times except for state 1
+  if(state != 1)
+  {
+      matrix.drawPixel(x, y, colors[0]);
+  }
   
   matrix.show();
   delay(100);
