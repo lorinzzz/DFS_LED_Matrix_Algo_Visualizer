@@ -82,7 +82,11 @@ int maze[MATRIX_HEIGHT][MATRIX_WIDTH] = {
            {1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1},
            {1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1}};
            
-        
+// in efforts to reduce memory usage after all recursive call stacks of findPath is executed
+// maze will be updated with the traversal order marked on the cells (barring all walls and already traversed cells)
+// all traversed cells that lead to no soln (after all 4 directions return false) will be marked as negative
+// thus when the matrix is read back later, we can distinguish the order of which nodes were travelled and can be traced back
+// so after tracing, we can show the solns by simply showing all cells with value that are pos (>=3 to avoid walls)       
 int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int end_x, int end_y, int *count)
 {
     // path found 
@@ -140,6 +144,7 @@ int findPath(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int curr_x, int curr_y, int 
         }
       }      
     }
+    // mark all cells that lead to no soln as negative
     maze[curr_x][curr_y] = maze[curr_x][curr_y] * (-1);
     return 0;
 
@@ -176,16 +181,12 @@ bool isValidMovement(int x_pos, int y_pos, int x_move, int y_move, bool joyStick
       }
     }
   }
-
-
   return true;
 }
 
 
 void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int state, int *itr)
 {
-  // flag to mark all non soln cells were cleared
-  int clearedAllNonSolnCellsFlag = 0;
 
   for(int i = 0; i < MATRIX_HEIGHT; i++)
   {
@@ -208,9 +209,8 @@ void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int state, int *itr)
         }
       } 
       //  state 4: draw the soln for cells [3,*itr]
-      // although this will run once before all the non soln cells are cleared - it is not noticeable to the human eye
-      // and actually works as a transition....
-      if( ((maze[i][j] >= 3  && maze[i][j] <= *itr))  && state == 4) 
+      // avoid drawing all cells that are negative
+      if(maze[i][j] >= 3  && state == 4) 
       {
         matrix.drawPixel(i, j, colors[3]);     
       }
@@ -221,22 +221,7 @@ void drawMatrix(int maze[MATRIX_HEIGHT][MATRIX_WIDTH], int state, int *itr)
       }
     }
   }  
-  // before outputting the soln we have to clear all the non soln cells (all the negative marked cells)
-  if(*itr > 3 && (state == 4 || state == 5) && !clearedAllNonSolnCellsFlag)
-  {
-    for(int i = 0; i < MATRIX_HEIGHT; i++)
-    {
-      for(int j = 0; j < MATRIX_WIDTH; j++)
-      {   
-          if(maze[i][j] < 0)
-          {
-            // set to arbitrary large number to denote it as non soln cell, 16x16 matrix will have 255 being the largest traversal count
-            maze[i][j] = 300; 
-          }             
-      }
-    }
-    clearedAllNonSolnCellsFlag = 1;
-  }
+
 }
 
 void readJoyStick()
@@ -312,7 +297,6 @@ void loop()
         start_y = y;
         state = 1; // move to state 1
       }
-      Serial.print("S0\n");
   }
   else if(state == 1)
   {
@@ -322,28 +306,16 @@ void loop()
         end_x = x;
         end_y = y;  
         state = 2; // move to state 2
-        Serial.print("Set to S2!\nStart:");
-        Serial.print(start_x);
-        Serial.print(" ");
-        Serial.print(start_y);
-        Serial.print("\nEnd:");
-        Serial.print(end_x);
-        Serial.print(" ");
-        Serial.print(end_y);
-        Serial.print("\n");
       }
-      Serial.print("S1\n");
   }
   else if(state == 2) // run algo
   {
-     Serial.print("Running Algo\n");
      if(!findPath(maze, start_x, start_y, end_x, end_y, &count))// might have x and y mixed up
      {
       state = 5;
      }
      maze[end_x][end_y] = count + 1;  
      state = 3; // move to state 3 
-     Serial.print("S2\n");
   }
   else if(state == 3) // state 3: trace traversal
   {
@@ -353,13 +325,11 @@ void loop()
     {
       state = 4; // go to state 4 to show soln
     }
-    Serial.print("S3\n");
     delay(50); 
   }
   else if(state == 4)
   {
     drawMatrix(maze, state, &itr);
-    Serial.print("S4\n");
   }
   else if(state == 5)
   {
