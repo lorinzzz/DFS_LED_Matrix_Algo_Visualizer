@@ -1,3 +1,6 @@
+// Code written in mind to minimize memory usage on the Arduino Uno
+// code to be used in arduino - requires some library/syntax changes
+
 #include <stdio.h>
 #include <queue>
 #include <iostream>
