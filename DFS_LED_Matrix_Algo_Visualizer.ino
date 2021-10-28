@@ -64,27 +64,26 @@ int start_y = -1;
 int end_x = -1;
 int end_y = -1;
 // NOTE GRID COORD (0,0) is at top left corner
-// 1 designates a wall
-// 2 is reserved 
-// 3- 255 traverse order markings
-// neg numbers: non soln cells
+
+// paste maze here
 int maze[MATRIX_HEIGHT][MATRIX_WIDTH] = {
-           {0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0},
-           {0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1},
-           {1,0,1,1,1,1,1,1,1,0,1,1,0,1,0,1},
-           {1,0,0,0,0,0,1,0,0,0,0,1,0,1,0,1},
-           {1,0,1,1,0,1,1,1,0,1,1,1,0,1,0,1},
-           {1,0,1,1,0,0,0,1,0,1,1,0,0,1,0,1},
-           {1,0,1,1,0,1,0,0,0,0,0,0,1,1,0,1},
-           {1,0,1,1,1,0,0,1,0,1,1,0,0,0,0,1},
-           {1,0,0,0,1,1,1,1,0,1,1,0,1,1,0,1},
-           {1,0,1,0,0,0,0,0,0,1,0,0,1,1,0,1},
-           {1,0,1,1,0,1,1,0,1,1,0,1,1,0,0,0},
-           {1,0,1,1,0,1,1,0,1,1,0,1,1,1,0,1},
-           {1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0},
-           {1,0,1,0,1,0,1,1,0,1,0,1,0,1,1,0},
-           {0,0,0,0,1,0,1,1,0,0,0,0,0,0,1,0},
-           {0,1,1,1,1,0,1,1,0,1,0,1,1,1,1,0}};
+{1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1},
+{1,0,0,1,1,1,1,0,1,0,0,0,1,1,0,0},
+{0,0,1,0,0,0,0,0,1,1,0,1,0,1,1,0},
+{0,1,0,0,1,1,1,1,0,0,1,0,0,0,1,0},
+{1,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0},
+{0,0,1,1,0,1,0,0,0,0,1,1,0,1,1,1},
+{1,0,0,0,1,0,0,1,0,1,0,0,0,0,0,0},
+{0,0,1,0,1,1,0,0,1,1,0,1,0,1,1,1},
+{0,1,1,0,0,0,1,0,0,0,1,0,0,0,0,0},
+{0,0,0,1,1,0,0,1,1,0,1,0,1,1,1,0},
+{0,1,1,0,0,1,0,0,1,0,1,0,0,0,1,0},
+{1,0,0,0,1,0,0,1,0,0,0,1,1,0,1,0},
+{0,0,1,1,0,0,1,1,0,1,1,0,0,0,1,0},
+{1,0,0,0,0,1,0,0,0,0,0,1,1,1,0,0},
+{0,1,1,1,1,0,0,1,0,1,0,0,0,0,1,0},
+{0,0,0,0,0,0,1,0,0,0,1,0,1,0,0,0},
+};
            
 // in efforts to reduce memory usage after all recursive call stacks of findPath is executed
 // maze will be updated with the traversal order marked on the cells (barring all walls and already traversed cells)
@@ -260,12 +259,23 @@ void readJoyStick()
   }   
 }
 
+// to move cursor anywhere
+void readJoyStickFree()
+{
+  if(analogRead(X_PIN) >= 650){x++;}
+  else if(analogRead(X_PIN) <= 370){x--;}
+  if(analogRead(Y_PIN) <= 400){y++;}
+  else if(analogRead(Y_PIN) >= 680){y--;}
+}
+
+
+
 void setup()
 {
   // for LED matrix
   matrix.begin();
   matrix.setTextWrap(false);
-  matrix.setBrightness(5);
+  matrix.setBrightness(100);
   // for joystick
   pinMode(SW_PIN, INPUT);
   digitalWrite(SW_PIN, HIGH);
@@ -304,7 +314,7 @@ void loop()
 {
   matrix.fillScreen(0);
   matrix.setCursor(0, 0);
-  readJoyStick();
+  readJoyStickFree();
   // state 0: draw maze
   if(state == 0)
   {
